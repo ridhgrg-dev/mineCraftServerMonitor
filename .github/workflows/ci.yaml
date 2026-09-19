@@ -118,13 +118,17 @@ jobs:
           output-format: json
           output-file: web-grype.json
       - name: Summarize container vulnerabilities
-        if: failure()
+        if: always()
         run: |
           python3 - <<'PY'
           import glob, json, os
           for report in glob.glob("*-grype.json"):
               image = report.removesuffix("-grype.json")
-              for match in json.load(open(report))["matches"]:
+              result = json.load(open(report))
+              counts = {severity: sum(m["vulnerability"]["severity"] == severity for m in result["matches"]) for severity in ("High", "Critical")}
+              digest = result["source"]["target"]["manifestDigest"]
+              print(f"::notice title={image} scan result::{digest}; HIGH={counts['High']}; CRITICAL={counts['Critical']}")
+              for match in result["matches"]:
                   vulnerability = match["vulnerability"]
                   if vulnerability["severity"] not in {"High", "Critical"}:
                       continue
