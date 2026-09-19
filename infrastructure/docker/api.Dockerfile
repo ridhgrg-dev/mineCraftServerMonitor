@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.12.16 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.17 AS uv
 FROM python:3.14.7-alpine3.24@sha256:016508ba505da24f7139765bc4bb669df4e88eb2f12eeadd571bf2f88d7533df AS compression
 RUN apk add --no-cache build-base cmake curl
 # zlib-ng's compatibility ABI preserves Python compression without the zlib
