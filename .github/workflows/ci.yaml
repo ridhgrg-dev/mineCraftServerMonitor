@@ -68,7 +68,10 @@ jobs:
       - name: Summarize Paper failure
         if: failure()
         run: |
-          failure=$(grep -m1 -E 'Execution failed for task|What went wrong|FAILURE: Build failed|[Ee]rror:' /tmp/paper-gradle.log || true)
+          failure=$(awk '/\* What went wrong:/{found=1; next} found && NF {print; exit}' /tmp/paper-gradle.log)
+          if [ -z "$failure" ]; then
+            failure=$(grep -m1 -E 'Execution failed for task|[Ee]rror:' /tmp/paper-gradle.log || true)
+          fi
           failure=${failure:-"Paper Gradle validation failed; see log tail below."}
           echo "::error title=Paper Gradle validation failed::$failure"
           {
