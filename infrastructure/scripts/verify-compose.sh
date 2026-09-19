@@ -26,7 +26,8 @@ COMPOSE_FILE=compose.yaml infrastructure/scripts/restore-db.sh "$archive" restor
 value=$(docker compose exec -T postgres psql -U postgres -d restore_foundation_test -Atc 'SELECT value FROM public.restore_probe WHERE id=1')
 [ "$value" = foundation-restore-test ]
 revision=$(docker compose exec -T postgres psql -U postgres -d restore_foundation_test -Atc 'SELECT version_num FROM public.alembic_version')
-[ "$revision" = 0001_foundation ]
+expected_revision=$(docker compose run --rm --no-deps migrate alembic heads | awk 'NR == 1 {print $1}')
+[ "$revision" = "$expected_revision" ]
 docker compose exec -T postgres psql -U postgres -d platform -v ON_ERROR_STOP=1 -c 'DROP TABLE public.restore_probe'
 PUBLIC_DOMAIN=example.com ACME_EMAIL=ops@example.com RELEASE_VERSION=0.1.0 docker compose -f compose.production.yaml config --format json | python3 infrastructure/scripts/check-production.py
 python3 infrastructure/scripts/measure-resources.py
