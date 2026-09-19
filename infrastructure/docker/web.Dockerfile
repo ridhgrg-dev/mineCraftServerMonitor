@@ -1,4 +1,4 @@
-FROM node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS build
+FROM node:26.8.2-alpine3.24@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS build
 RUN npm install --global pnpm@12.4.2
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -10,7 +10,7 @@ COPY packages/api-client packages/api-client
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @platform/web build
 
-FROM node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS runtime
+FROM node:26.8.2-alpine3.24@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS runtime
 # zlib-ng 2.3.3 supplies a separate ABI and has no CVE-2026-85091 match.
 # Node retains its required libz ABI through the explicit compatibility link.
 RUN apk add --no-cache zlib-ng \
