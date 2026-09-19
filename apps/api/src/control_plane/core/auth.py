@@ -1,9 +1,19 @@
 import unicodedata
+from hashlib import sha256
+from secrets import token_urlsafe
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
 _password_hasher = PasswordHasher()
+
+
+def new_session_token() -> str:
+    return token_urlsafe(32)
+
+
+def hash_session_token(token: str) -> bytes:
+    return sha256(token.encode("utf-8")).digest()
 
 
 def normalize_email(value: str) -> str:
