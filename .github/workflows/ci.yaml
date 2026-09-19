@@ -117,6 +117,21 @@ jobs:
           severity-cutoff: high
           output-format: json
           output-file: web-grype.json
+      - name: Summarize container vulnerabilities
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, json, os
+          for report in glob.glob("*-grype.json"):
+              image = report.removesuffix("-grype.json")
+              for match in json.load(open(report))["matches"]:
+                  vulnerability = match["vulnerability"]
+                  if vulnerability["severity"] not in {"High", "Critical"}:
+                      continue
+                  artifact = match["artifact"]
+                  fixed = ", ".join(vulnerability["fix"]["versions"]) or "no fix listed"
+                  print(f"::error title={image} {vulnerability['severity']} {vulnerability['id']}::{artifact['name']} {artifact['version']} ({artifact['type']}); fixed: {fixed}")
+          PY
       - if: always()
         uses: actions/upload-artifact@v4
         with:
