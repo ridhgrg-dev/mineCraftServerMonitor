@@ -13,6 +13,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
+from control_plane.api.auth import router as auth_router
 from control_plane.core.dependencies import Resources
 from control_plane.core.logging import configure_logging, request_id_context
 from control_plane.core.settings import Settings
@@ -55,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         resources = Resources.create(config)
         app.state.resources = resources
+        app.state.settings = config
         logger.info("api.started")
         try:
             yield
@@ -121,5 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 request, 503, "dependency.unavailable", "A required dependency is unavailable."
             )
         return Health(status="ok")
+
+    app.include_router(auth_router)
 
     return app

@@ -39,9 +39,14 @@ def test_missing_route_and_invalid_correlation_id(settings: Settings) -> None:
         assert len(response.headers["x-request-id"]) == 36
 
 
-def test_only_infrastructure_routes(settings: Settings) -> None:
+def test_api_includes_foundation_and_auth_routes(settings: Settings) -> None:
     app = create_app(settings)
-    assert set(app.openapi()["paths"]) == {"/health/live", "/health/ready"}
+    assert set(app.openapi()["paths"]) == {
+        "/health/live",
+        "/health/ready",
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+    }
 
 
 def test_json_logging_omits_exception_details() -> None:
