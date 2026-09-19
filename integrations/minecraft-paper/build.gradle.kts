@@ -11,7 +11,7 @@ repositories {
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(25)) }
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.124-stable")
-    testImplementation(platform("org.junit:junit-bom:6.0.3"))
+    testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
