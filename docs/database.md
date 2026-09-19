@@ -1,6 +1,6 @@
 # Proposed database schema
 
-Status: logical design for review; no DDL or migrations are implemented.
+Status: future logical schema is accepted. Phase 1 implements only role bootstrap, an empty application schema, Alembic infrastructure and transaction-local context. Business tables and RLS policies start in Phase 2.
 
 ## Common conventions and isolation
 
@@ -10,46 +10,46 @@ Email is normalized before uniqueness checks. Hash tokens as binary digests. Cou
 
 ## Identity and tenancy
 
-| Table | Principal columns | Constraints / indexes |
-| --- | --- | --- |
-| `users` (global) | id, normalized_email, password_hash, email_verified_at, disabled_at | unique email |
-| `identity_links` (global) | id, user_id, issuer, subject | unique issuer/subject; future OIDC |
-| `auth_sessions` (global) | id, user_id, family_id, access_hash, refresh_hash, access_expires_at, idle_expires_at, absolute_expires_at, rotated_at, revoked_at | unique credential hashes; user/revocation index; retain rotated hashes until family expiry |
-| `identity_tokens` (global) | id, user_id, purpose, token_hash, expires_at, consumed_at | unique hash; purpose check; atomic consume |
-| `organizations` | id, name, slug, deleted_at | unique active slug |
-| `organization_members` | id, organization_id, user_id, role | unique org/user; valid role; lock org row when changing owners |
-| `member_invitations` | id, organization_id, email, role, token_hash, invited_by, expires_at, accepted_at | one pending invitation per org/email; unique hash |
+| Table                      | Principal columns                                                                                                                  | Constraints / indexes                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `users` (global)           | id, normalized_email, password_hash, email_verified_at, disabled_at                                                                | unique email                                                                               |
+| `identity_links` (global)  | id, user_id, issuer, subject                                                                                                       | unique issuer/subject; future OIDC                                                         |
+| `auth_sessions` (global)   | id, user_id, family_id, access_hash, refresh_hash, access_expires_at, idle_expires_at, absolute_expires_at, rotated_at, revoked_at | unique credential hashes; user/revocation index; retain rotated hashes until family expiry |
+| `identity_tokens` (global) | id, user_id, purpose, token_hash, expires_at, consumed_at                                                                          | unique hash; purpose check; atomic consume                                                 |
+| `organizations`            | id, name, slug, deleted_at                                                                                                         | unique active slug                                                                         |
+| `organization_members`     | id, organization_id, user_id, role                                                                                                 | unique org/user; valid role; lock org row when changing owners                             |
+| `member_invitations`       | id, organization_id, email, role, token_hash, invited_by, expires_at, accepted_at                                                  | one pending invitation per org/email; unique hash                                          |
 
 Authentication security events without a tenant live in a separate restricted `identity_audit_events` table. Tenant audit records never use a nullable organization as an isolation shortcut.
 
 ## Hosts and servers
 
-| Table | Principal columns | Constraints / indexes |
-| --- | --- | --- |
-| `servers` | id, organization_id, name, game_kind, desired_state, deleted_at | org/created_at/id index |
-| `server_agents` | id, organization_id, display_name, agent_version, last_seen_at, revoked_at | org/last_seen index; represents a host identity |
-| `agent_keys` | id, organization_id, agent_id, public_key, fingerprint, valid_from, expires_at, revoked_at | unique fingerprint; tenant FK to agent |
-| `agent_auth_challenges` | id, organization_id, agent_id, key_id, nonce_hash, expires_at, consumed_at | single use; expiry index |
-| `agent_access_credentials` | id, organization_id, agent_id, key_id, token_hash, expires_at, revoked_at | unique token hash; short lifetime |
-| `agent_bindings` | id, organization_id, agent_id, server_id, local_target_ref, generation, activated_at, retired_at | unique active server; unique active agent/local target; generation increments on reassignment |
-| `enrollment_tokens` | id, organization_id, server_id, token_hash, created_by, expires_at, consumed_at, revoked_at | unique hash; atomic consumption; valid creator membership |
-| `minecraft_servers` | server_id, organization_id, version, plugin_version, max_players, integration_last_seen_at | one-to-one tenant FK; nonnegative max_players |
-| `server_worlds` | id, organization_id, server_id, world_uuid, name | unique org/server/world UUID |
+| Table                      | Principal columns                                                                                | Constraints / indexes                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `servers`                  | id, organization_id, name, game_kind, desired_state, deleted_at                                  | org/created_at/id index                                                                       |
+| `server_agents`            | id, organization_id, display_name, agent_version, last_seen_at, revoked_at                       | org/last_seen index; represents a host identity                                               |
+| `agent_keys`               | id, organization_id, agent_id, public_key, fingerprint, valid_from, expires_at, revoked_at       | unique fingerprint; tenant FK to agent                                                        |
+| `agent_auth_challenges`    | id, organization_id, agent_id, key_id, nonce_hash, expires_at, consumed_at                       | single use; expiry index                                                                      |
+| `agent_access_credentials` | id, organization_id, agent_id, key_id, token_hash, expires_at, revoked_at                        | unique token hash; short lifetime                                                             |
+| `agent_bindings`           | id, organization_id, agent_id, server_id, local_target_ref, generation, activated_at, retired_at | unique active server; unique active agent/local target; generation increments on reassignment |
+| `enrollment_tokens`        | id, organization_id, server_id, token_hash, created_by, expires_at, consumed_at, revoked_at      | unique hash; atomic consumption; valid creator membership                                     |
+| `minecraft_servers`        | server_id, organization_id, version, plugin_version, max_players, integration_last_seen_at       | one-to-one tenant FK; nonnegative max_players                                                 |
+| `server_worlds`            | id, organization_id, server_id, world_uuid, name                                                 | unique org/server/world UUID                                                                  |
 
 Agent capabilities are schema-versioned metadata, not authority to execute cloud-supplied code. Long-lived local runtime paths and plugin secrets remain on the customer host. Durable identity and observations are stored separately; online/degraded/offline is computed from server receipt time rather than trusted device clocks.
 
 ## Players and telemetry
 
-| Table | Principal columns | Constraints / indexes |
-| --- | --- | --- |
-| `players` | id, organization_id, game_kind, external_uuid, current_name, first_seen_at, last_seen_at | unique org/game/external UUID; no global cross-tenant player profile |
-| `player_sessions` | id, organization_id, server_id, player_id, source_session_id, joined_at, left_at, end_reason, estimated_end | unique org/server/source session; end >= start; one active session per server/player |
-| `ingested_events` | id, organization_id, agent_id, boot_id, sequence, event_type, observed_at, received_at | unique agent/boot/sequence; dedup retention exceeds replay window |
-| `host_samples` | organization_id, agent_id, sampled_at, received_at, boot_id, sequence, cpu_ratio, memory_used_bytes, memory_total_bytes, disk_used_bytes, disk_total_bytes, uptime_seconds | partition by received_at; tenant/agent/time index; bounds checks |
-| `game_samples` | organization_id, server_id, sampled_at, received_at, boot_id, sequence, player_count, tps, mspt, runtime_state | partition by received_at; tenant/server/time index; nullable unavailable values |
-| `metric_aggregates` | organization_id, resource_kind, resource_id, metric_key, bucket_start, resolution_seconds, count, sum, min, max | unique tenant/resource/metric/bucket/resolution; separate typed resource FKs in physical schema |
-| `aggregation_watermarks` | organization_id, resource_kind, shard_key, resolution_seconds, complete_through | unique aggregation stream |
-| `operational_events` | id, organization_id, server_id, agent_id, event_type, severity, safe_message, observed_at, received_at | org/server/received_at/id; bounded redacted payload |
+| Table                    | Principal columns                                                                                                                                                          | Constraints / indexes                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `players`                | id, organization_id, game_kind, external_uuid, current_name, first_seen_at, last_seen_at                                                                                   | unique org/game/external UUID; no global cross-tenant player profile                            |
+| `player_sessions`        | id, organization_id, server_id, player_id, source_session_id, joined_at, left_at, end_reason, estimated_end                                                                | unique org/server/source session; end >= start; one active session per server/player            |
+| `ingested_events`        | id, organization_id, agent_id, boot_id, sequence, event_type, observed_at, received_at                                                                                     | unique agent/boot/sequence; dedup retention exceeds replay window                               |
+| `host_samples`           | organization_id, agent_id, sampled_at, received_at, boot_id, sequence, cpu_ratio, memory_used_bytes, memory_total_bytes, disk_used_bytes, disk_total_bytes, uptime_seconds | partition by received_at; tenant/agent/time index; bounds checks                                |
+| `game_samples`           | organization_id, server_id, sampled_at, received_at, boot_id, sequence, player_count, tps, mspt, runtime_state                                                             | partition by received_at; tenant/server/time index; nullable unavailable values                 |
+| `metric_aggregates`      | organization_id, resource_kind, resource_id, metric_key, bucket_start, resolution_seconds, count, sum, min, max                                                            | unique tenant/resource/metric/bucket/resolution; separate typed resource FKs in physical schema |
+| `aggregation_watermarks` | organization_id, resource_kind, shard_key, resolution_seconds, complete_through                                                                                            | unique aggregation stream                                                                       |
+| `operational_events`     | id, organization_id, server_id, agent_id, event_type, severity, safe_message, observed_at, received_at                                                                     | org/server/received_at/id; bounded redacted payload                                             |
 
 Physical migrations will split polymorphic aggregate resource references into host and server aggregate tables to retain real foreign keys. Time-partitioned uniqueness must include the partition key; use the separate ingestion ledger for cross-partition replay deduplication. All samples are typed rows, not one row per scalar metric. CPU ratio means used fraction of total host capacity (0–1), bytes are integers, TPS/MSPT are finite nonnegative numbers.
 
@@ -57,33 +57,33 @@ Reconnect reconciles player snapshots with open sessions. Missing quits are expl
 
 ## Commands, backups and alerts
 
-| Table | Principal columns | Constraints / indexes |
-| --- | --- | --- |
-| `commands` | id, organization_id, server_id, agent_id, binding_generation, requested_by, operation, schema_version, parameters, state, idempotency_key, request_hash, requested_at, deadline_at | unique org/actor/scope/key; org/server/time and state/deadline indexes |
-| `command_executions` | id, organization_id, command_id, delivery_attempt, connection_generation, acknowledged_at, started_at, completed_at, outcome, error_code | unique command/delivery attempt; an attempt records delivery, not permission to re-execute |
-| `command_events` | id, organization_id, command_id, source_event_id, state, occurred_at, received_at, safe_detail | unique command/source event; append-only transitions |
-| `backup_policies` | id, organization_id, server_id, local_profile_ref, schedule, timezone, retention_count, retention_days, consistency_mode | positive retention; profile is an opaque local config reference |
-| `backups` | id, organization_id, server_id, command_id, policy_id, state, started_at, completed_at, size_bytes, checksum, storage_kind, artifact_ref, failure_code | unique command; index org/server/start; preserve failed/expired metadata |
-| `alert_rules` | id, organization_id, server_id, metric_key, comparator, threshold, duration_seconds, cooldown_seconds, enabled | threshold/unit compatibility validated; positive durations |
-| `alerts` | id, organization_id, rule_id, server_id, state, triggered_at, resolved_at, last_notified_at | at most one active alert per rule/server |
-| `notification_channels` | id, organization_id, kind, encrypted_secret, key_id, enabled | ciphertext only; tenant-bound AEAD context |
-| `alert_rule_channels` | organization_id, rule_id, channel_id | composite primary key and tenant FKs |
-| `notification_deliveries` | id, organization_id, alert_id, channel_id, transition_id, attempt_count, state, next_attempt_at | unique alert/channel/transition |
+| Table                     | Principal columns                                                                                                                                                                  | Constraints / indexes                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `commands`                | id, organization_id, server_id, agent_id, binding_generation, requested_by, operation, schema_version, parameters, state, idempotency_key, request_hash, requested_at, deadline_at | unique org/actor/scope/key; org/server/time and state/deadline indexes                     |
+| `command_executions`      | id, organization_id, command_id, delivery_attempt, connection_generation, acknowledged_at, started_at, completed_at, outcome, error_code                                           | unique command/delivery attempt; an attempt records delivery, not permission to re-execute |
+| `command_events`          | id, organization_id, command_id, source_event_id, state, occurred_at, received_at, safe_detail                                                                                     | unique command/source event; append-only transitions                                       |
+| `backup_policies`         | id, organization_id, server_id, local_profile_ref, schedule, timezone, retention_count, retention_days, consistency_mode                                                           | positive retention; profile is an opaque local config reference                            |
+| `backups`                 | id, organization_id, server_id, command_id, policy_id, state, started_at, completed_at, size_bytes, checksum, storage_kind, artifact_ref, failure_code                             | unique command; index org/server/start; preserve failed/expired metadata                   |
+| `alert_rules`             | id, organization_id, server_id, metric_key, comparator, threshold, duration_seconds, cooldown_seconds, enabled                                                                     | threshold/unit compatibility validated; positive durations                                 |
+| `alerts`                  | id, organization_id, rule_id, server_id, state, triggered_at, resolved_at, last_notified_at                                                                                        | at most one active alert per rule/server                                                   |
+| `notification_channels`   | id, organization_id, kind, encrypted_secret, key_id, enabled                                                                                                                       | ciphertext only; tenant-bound AEAD context                                                 |
+| `alert_rule_channels`     | organization_id, rule_id, channel_id                                                                                                                                               | composite primary key and tenant FKs                                                       |
+| `notification_deliveries` | id, organization_id, alert_id, channel_id, transition_id, attempt_count, state, next_attempt_at                                                                                    | unique alert/channel/transition                                                            |
 
 Terminal command observations are retained even after timeout; reconciliation appends evidence rather than silently rewriting history. Local agent journal is independent of these tables and survives process crashes. No database transaction can atomically commit a remote runtime side effect; see protocol limitations.
 
 ## Billing and background work
 
-| Table | Principal columns | Constraints / indexes |
-| --- | --- | --- |
-| `billing_customers` | id, organization_id, provider_customer_id | unique org/provider customer |
-| `subscriptions` | id, organization_id, provider_subscription_id, status, period_end, last_reconciled_at | unique provider subscription; no card data |
-| `entitlement_definitions` (global) | key, value_type | unique key |
-| `plan_entitlements` (global) | plan_key, entitlement_key, boolean_value, integer_value | unique plan/key; exactly one matching typed value |
-| `organization_entitlements` | organization_id, entitlement_key, boolean_value, integer_value, source, valid_until | unique org/key; typed-value check |
-| `billing_webhook_events` (restricted ingress) | provider_event_id, organization_id, type, received_at, processed_at, payload_hash, state | unique provider ID; org nullable only until verified customer mapping; no tenant API reads |
-| `outbox_jobs` | id, organization_id, kind, payload_version, payload, available_at, attempts, lease_until, completed_at | pending available_at index; tenant-bound jobs; dead-letter state |
-| `audit_events` | id, organization_id, actor_kind, actor_id, action, resource_kind, resource_id, request_id, command_id, occurred_at, metadata | org/time/id index; INSERT/SELECT only for runtime role |
+| Table                                         | Principal columns                                                                                                            | Constraints / indexes                                                                      |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `billing_customers`                           | id, organization_id, provider_customer_id                                                                                    | unique org/provider customer                                                               |
+| `subscriptions`                               | id, organization_id, provider_subscription_id, status, period_end, last_reconciled_at                                        | unique provider subscription; no card data                                                 |
+| `entitlement_definitions` (global)            | key, value_type                                                                                                              | unique key                                                                                 |
+| `plan_entitlements` (global)                  | plan_key, entitlement_key, boolean_value, integer_value                                                                      | unique plan/key; exactly one matching typed value                                          |
+| `organization_entitlements`                   | organization_id, entitlement_key, boolean_value, integer_value, source, valid_until                                          | unique org/key; typed-value check                                                          |
+| `billing_webhook_events` (restricted ingress) | provider_event_id, organization_id, type, received_at, processed_at, payload_hash, state                                     | unique provider ID; org nullable only until verified customer mapping; no tenant API reads |
+| `outbox_jobs`                                 | id, organization_id, kind, payload_version, payload, available_at, attempts, lease_until, completed_at                       | pending available_at index; tenant-bound jobs; dead-letter state                           |
+| `audit_events`                                | id, organization_id, actor_kind, actor_id, action, resource_kind, resource_id, request_id, command_id, occurred_at, metadata | org/time/id index; INSERT/SELECT only for runtime role                                     |
 
 Stripe events are durable and idempotent. Out-of-order events trigger reconciliation against provider subscription state rather than blindly overwriting with arrival order. Server/member quota checks lock the organization or quota row so concurrent requests cannot exceed limits. Initial free entitlements are explicit configuration before Stripe delivery.
 
@@ -108,3 +108,11 @@ erDiagram
   SERVERS ||--o{ BACKUPS : protects
   ORGANIZATIONS ||--o{ AUDIT_EVENTS : records
 ```
+
+## Implemented Phase 1 foundation
+
+The PostgreSQL init script creates `platform_migrator` and `platform_app` with NOSUPERUSER/NOBYPASSRLS/NOCREATEROLE. Public database access and public schema CREATE are revoked. Only the migrator can create application objects. Migration `0001_foundation` establishes schema `platform`, grants runtime USAGE and defaults future table DML/sequence privileges to the runtime role. Alembic's version table remains in `public` and is not runtime-writable.
+
+`tenant_transaction(engine, UUID)` uses parameterized `set_config(..., true)` inside one SQLAlchemy transaction. Integration tests verify context on that transaction, then absence after commit and rollback on a reused connection. No tenant tables or RLS policies have been fabricated in this phase. Add FORCE RLS policies with real tenant tables in Phase 2; the current helper is not authorization by itself.
+
+Migrations read only `MIGRATION_DATABASE_URL`; application settings read only `APP_DATABASE_URL`. Never provide migration credentials to a running API/worker. See [development](development.md), [deployment](deployment.md) and [backup procedure](backups.md).

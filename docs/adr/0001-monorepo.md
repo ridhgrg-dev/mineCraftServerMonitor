@@ -1,6 +1,6 @@
 # 0001: Monorepo with native language tooling
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 

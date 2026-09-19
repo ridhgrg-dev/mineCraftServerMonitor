@@ -1,6 +1,6 @@
 # 0002: FastAPI modular monolith
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 

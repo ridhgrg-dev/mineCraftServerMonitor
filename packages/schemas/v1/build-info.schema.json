@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:server-operations:build-info:1.0",
+  "title": "Local binary build information (not an authentication message)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "commit", "built_at"],
+  "properties": {
+    "version": { "type": "string", "minLength": 1 },
+    "commit": { "type": "string", "minLength": 1 },
+    "built_at": { "type": "string", "minLength": 1 }
+  }
+}

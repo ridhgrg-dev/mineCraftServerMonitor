@@ -1,0 +1,10 @@
+.tools
+apps/api
+agents
+integrations
+Prompts
+pnpm-lock.yaml
+packages/api-client/openapi.json
+packages/api-client/src/schema.d.ts
+.next
+node_modules

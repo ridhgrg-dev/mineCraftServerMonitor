@@ -1,0 +1,27 @@
+{
+  "python": {
+    "tag": "3.14.7-slim-trixie",
+    "digest": "sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6",
+    "platforms": ["linux/amd64", "linux/arm64"]
+  },
+  "node": {
+    "tag": "24.21.0-trixie-slim",
+    "digest": "sha256:d7b4e5c4ad20b327d7bb16fab6aecd60ac20aa50f8514eb75a2b059e89abe48e",
+    "platforms": ["linux/amd64", "linux/arm64"]
+  },
+  "postgres": {
+    "tag": "18.6-trixie",
+    "digest": "sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280",
+    "platforms": ["linux/amd64", "linux/arm64"]
+  },
+  "redis": {
+    "tag": "8.10.1-alpine",
+    "digest": "sha256:bd999b5cfee25fb24b8320a31fddbd69f462df44c8138c66e369582937beebc0",
+    "platforms": ["linux/amd64", "linux/arm64"]
+  },
+  "caddy": {
+    "tag": "2.11.4-alpine",
+    "digest": "sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e",
+    "platforms": ["linux/amd64", "linux/arm64"]
+  }
+}

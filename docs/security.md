@@ -1,21 +1,21 @@
 # Security design
 
-Status: proposed controls, not implemented or audited.
+Status: accepted security design. Phase 1 implements infrastructure safeguards only; human/agent authentication, authorization and RLS policies remain later phases.
 
 ## Threat model
 
-| Threat / boundary | Control | Verification |
-| --- | --- | --- |
-| Tenant crosses organization boundary | Membership authorization, scoped queries, composite tenant FKs, RLS | Two-tenant read/write/command/job tests |
-| Stolen browser session or CSRF | HttpOnly Secure cookies, rotation/revocation, Origin and CSRF checks | Replay, logout, cross-origin and reset tests |
-| Enrollment token intercepted/replayed | TLS, short lifetime, hashed token, atomic consumption, key binding | Concurrent enroll and expired/reused token tests |
-| Fake or revoked agent | Device key proof, short-lived scoped credential, revocation checks | Challenge replay and live revocation tests |
-| Compromised control plane requests shell/path access | Local operation allowlist and owner-defined bindings | Malformed parameter, target and traversal tests |
-| Malicious plugin or telemetry | Local per-server secret, bounded input, tenant identity from credential | Spoofed server, oversized and invalid metric tests |
-| Replayed commands / agent crash | Durable journal, deadlines, binding fencing, reconciliation | Crash at each transition and duplicate delivery tests |
-| Webhook SSRF / secret leakage | Provider allowlist, public-address validation, redirect denial, encryption | Private IPv4/IPv6 and DNS rebinding tests |
-| Flooding / resource exhaustion | Connection quotas, payload caps, bounded queues, throttles | Limits and recovery tests |
-| Supply-chain or backup compromise | Locked dependencies, scans, least privilege, encrypted off-host backups | CI and restore exercises |
+| Threat / boundary                                    | Control                                                                    | Verification                                          |
+| ---------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Tenant crosses organization boundary                 | Membership authorization, scoped queries, composite tenant FKs, RLS        | Two-tenant read/write/command/job tests               |
+| Stolen browser session or CSRF                       | HttpOnly Secure cookies, rotation/revocation, Origin and CSRF checks       | Replay, logout, cross-origin and reset tests          |
+| Enrollment token intercepted/replayed                | TLS, short lifetime, hashed token, atomic consumption, key binding         | Concurrent enroll and expired/reused token tests      |
+| Fake or revoked agent                                | Device key proof, short-lived scoped credential, revocation checks         | Challenge replay and live revocation tests            |
+| Compromised control plane requests shell/path access | Local operation allowlist and owner-defined bindings                       | Malformed parameter, target and traversal tests       |
+| Malicious plugin or telemetry                        | Local per-server secret, bounded input, tenant identity from credential    | Spoofed server, oversized and invalid metric tests    |
+| Replayed commands / agent crash                      | Durable journal, deadlines, binding fencing, reconciliation                | Crash at each transition and duplicate delivery tests |
+| Webhook SSRF / secret leakage                        | Provider allowlist, public-address validation, redirect denial, encryption | Private IPv4/IPv6 and DNS rebinding tests             |
+| Flooding / resource exhaustion                       | Connection quotas, payload caps, bounded queues, throttles                 | Limits and recovery tests                             |
+| Supply-chain or backup compromise                    | Locked dependencies, scans, least privilege, encrypted off-host backups    | CI and restore exercises                              |
 
 A compromised customer host can forge its own metrics and access local data; the platform cannot establish host integrity remotely. A compromised control plane could request permitted operations; local allowlists bound its power but cannot eliminate this risk. Docker access is effectively privileged and must be explicitly enabled by the owner.
 
@@ -29,14 +29,14 @@ Rate-limit by account and source address for login/reset, by token/source for en
 
 ## Authorization
 
-| Capability | OWNER | ADMIN | OPERATOR | VIEWER |
-| --- | --- | --- | --- | --- |
-| Read server health/player metrics | Yes | Yes | Yes | Yes |
-| Read filtered logs/audit | Yes | Yes | Yes | No |
-| Start/stop/restart; trigger backup | Yes | Yes | Yes | No |
-| Configure servers, enroll/revoke agents, alerts and backup policy | Yes | Yes | No | No |
-| Invite/manage non-owner members | Yes | Yes | No | No |
-| Billing, ownership, delete organization | Yes | No | No | No |
+| Capability                                                        | OWNER | ADMIN | OPERATOR | VIEWER |
+| ----------------------------------------------------------------- | ----- | ----- | -------- | ------ |
+| Read server health/player metrics                                 | Yes   | Yes   | Yes      | Yes    |
+| Read filtered logs/audit                                          | Yes   | Yes   | Yes      | No     |
+| Start/stop/restart; trigger backup                                | Yes   | Yes   | Yes      | No     |
+| Configure servers, enroll/revoke agents, alerts and backup policy | Yes   | Yes   | No       | No     |
+| Invite/manage non-owner members                                   | Yes   | Yes   | No       | No     |
+| Billing, ownership, delete organization                           | Yes   | No    | No       | No     |
 
 ADMIN cannot create/remove/promote an OWNER; preserve at least one OWNER transactionally. Deny by default. API evaluates actor membership, resource tenant, action and current entitlements; the worker rechecks revocation/authorization before dispatch. Agent principals can only report for assigned bindings, never act as a user. Plugin credentials cannot invoke lifecycle actions. System jobs use explicit tenant scopes. UUID secrecy is not authorization.
 
@@ -61,3 +61,13 @@ Every tenant record carries `organization_id`; dependent rows use composite fore
 Audit rows are append-only for runtime identities; record actor/action/resource/request/command IDs and safe metadata. Database administrators can still modify them; do not claim tamper-proof storage. Preserve history on resource soft deletion. Publish separate audit/operational retention rules and an explicit organization-erasure workflow including backup expiration.
 
 Do not ingest player chat, IPs or private messages. Default to structured operational events. Raw console tail remains disabled until redaction/filtering is tested; arbitrary plugin log output may contain sensitive data, so generic regular-expression filtering is not a complete privacy guarantee. Security source IPs for human authentication have restricted access and proposed 30-day retention, distinct from forbidden player-IP collection.
+
+## Approved Phase 1 review (2026-09-18)
+
+Redis is optional for base readiness. PostgreSQL is the sole durable authority. Phase 1 establishes database roles and transaction-local tenant context without tenant tables; RLS policies follow in Phase 2. Docker and systemd are the initial controllable runtime targets; generic/manual process control is deferred. Freeze canonical Ed25519 challenge encoding and byte fixtures before Phase 3. Architecture review is complete; implement foundation only, then stop for review.
+
+## Phase 1 implementation boundary
+
+Implemented now: safe health/error envelopes, bounded dependency timeouts, validated request IDs, application JSON logging without connection exception details, secret settings with hidden validation input, production docs disabled, separate runtime/migration database identities, transaction-local context, generated local-only development secrets, private production Compose networks and port inspection. Only health endpoints are exposed; no fake authorization or business endpoints exist.
+
+Credentials/configuration remain in ignored local environment files or deployment secret management. Production missing required variables fail Compose interpolation; application production settings reject placeholder passwords and a migration-role URL. Dependency lockfiles, image digests, Gradle artifact checksums and CI scans establish the supply-chain foundation. These checks are not a full security audit.

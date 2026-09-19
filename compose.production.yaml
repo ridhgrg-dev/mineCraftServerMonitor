@@ -1,0 +1,139 @@
+name: server-operations
+x-api: &api
+  image: server-operations-api:${RELEASE_VERSION:?Set release version}
+  build:
+    context: .
+    dockerfile: infrastructure/docker/api.Dockerfile
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  networks: [application, data]
+  environment:
+    APP_ENVIRONMENT: production
+    APP_DATABASE_URL: postgresql+psycopg://platform_app:${APP_DB_PASSWORD:?Required}@postgres:5432/platform
+    APP_REDIS_URL: redis://redis:6379/0
+  depends_on:
+    postgres:
+      condition: service_healthy
+services:
+  postgres:
+    image: server-operations-postgres:${RELEASE_VERSION:?Set release version}
+    build:
+      context: .
+      dockerfile: infrastructure/docker/postgres.Dockerfile
+    restart: unless-stopped
+    networks: [data]
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Required}
+      MIGRATION_DB_PASSWORD: ${MIGRATION_DB_PASSWORD:?Required}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d platform"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+  redis:
+    image: redis:8.10.1-alpine@sha256:bd999b5cfee25fb24b8320a31fddbd69f462df44c8138c66e369582937beebc0
+    restart: unless-stopped
+    networks: [data]
+    command: [redis-server, --save, "", --appendonly, "no"]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+  api:
+    <<: *api
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  worker:
+    <<: *api
+    command: [python, -m, control_plane.worker]
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "from pathlib import Path; assert Path('/tmp/control-plane-worker.ready').exists()",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+  migrate:
+    <<: *api
+    profiles: [tools]
+    restart: "no"
+    environment:
+      MIGRATION_DATABASE_URL: postgresql+psycopg://platform_migrator:${MIGRATION_DB_PASSWORD:?Required}@postgres:5432/platform
+    command: [alembic, upgrade, head]
+  web:
+    image: server-operations-web:${RELEASE_VERSION:?Set release version}
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+    restart: unless-stopped
+    init: true
+    networks: [application]
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  caddy:
+    image: server-operations-caddy:${RELEASE_VERSION:?Set release version}
+    build:
+      context: .
+      dockerfile: infrastructure/docker/caddy.Dockerfile
+    restart: unless-stopped
+    networks: [edge, application]
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?Required}
+      ACME_EMAIL: ${ACME_EMAIL:?Required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1:2019/config/]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
+networks:
+  edge: {}
+  application:
+    internal: true
+  data:
+    internal: true

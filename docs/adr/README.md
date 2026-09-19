@@ -1,6 +1,6 @@
 # Architecture decision records
 
-All records are **Proposed** on 2026-09-18, pending architecture review. Acceptance does not imply implementation. See [review decisions](../review-decisions.md) and [dependency research](../dependencies.md).
+All records are **Accepted** on 2026-09-18 following the Phase 1 review. Acceptance does not imply implementation. See [review decisions](../review-decisions.md) and [dependency research](../dependencies.md).
 
 - [0001: Monorepo with native language tooling](0001-monorepo.md)
 - [0002: FastAPI modular monolith](0002-backend-stack.md)

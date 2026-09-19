@@ -1,6 +1,6 @@
 # 0008: Outbound authenticated agent WebSocket
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 
@@ -25,3 +25,7 @@ A persistent connection needs liveness, revocation, backpressure and reconnect h
 Test replay, revoked live connection, version skew, reconnect, invalid binding and crash-window behavior with shared protocol fixtures.
 
 Related: [architecture](../architecture.md), [security](../security.md), [versions](../dependencies.md).
+
+## Review clarification
+
+Ed25519 design is accepted. Canonical signed challenge encoding and cross-language byte fixtures must be frozen before Phase 3 authentication implementation; no authentication is implemented in Phase 1.

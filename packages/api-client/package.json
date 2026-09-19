@@ -1,0 +1,11 @@
+{
+  "name": "@platform/api-client",
+  "private": true,
+  "version": "0.1.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  }
+}

@@ -1,6 +1,6 @@
 # 0006: PostgreSQL as the durable source of truth
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 
@@ -25,3 +25,7 @@ RLS requires transaction-local context and pooled-connection tests. Volume and p
 Two-tenant tests cover API and worker paths; migrations, backup/restore and aggregation idempotency pass against real PostgreSQL.
 
 Related: [architecture](../architecture.md), [security](../security.md), [versions](../dependencies.md).
+
+## Review clarification
+
+Phase 1 establishes runtime/migration roles and transaction-local context, tested against PostgreSQL. Tenant tables and RLS policies arrive in Phase 2; no artificial tenant tables or policy framework in Phase 1.

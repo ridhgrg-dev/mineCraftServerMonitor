@@ -1,6 +1,6 @@
 # 0003: Next.js with strict TypeScript
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 

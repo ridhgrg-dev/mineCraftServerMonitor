@@ -1,6 +1,6 @@
 # 0009: Docker Compose on a single Linux host
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 

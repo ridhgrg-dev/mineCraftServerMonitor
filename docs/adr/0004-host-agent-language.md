@@ -1,6 +1,6 @@
 # 0004: Go host agent with local runtime adapters
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 
@@ -10,7 +10,7 @@ Customer hosts need a small portable daemon with predictable resource use and sa
 
 ## Decision
 
-Use Go with explicit Docker, systemd, configured-process and simulator adapters. Local owner configuration binds opaque server IDs to exact targets. Keep transport, journal, telemetry and adapters separate.
+Use Go with explicit Docker, systemd, future adapter boundaries. Local owner configuration binds opaque server IDs to exact targets. Keep transport, journal, telemetry and adapters separate.
 
 ## Alternatives
 
@@ -25,3 +25,7 @@ Linux installs come first; platform-specific code uses build constraints. Docker
 Build Linux amd64/arm64 and Darwin amd64; test allowlist, crash recovery, duplicate delivery and reconnect.
 
 Related: [architecture](../architecture.md), [security](../security.md), [versions](../dependencies.md).
+
+## Review clarification
+
+Initial controllable adapters are Docker and systemd. Generic/manual process lifecycle control is deferred pending separate review. Phase 1 introduces package boundaries only.

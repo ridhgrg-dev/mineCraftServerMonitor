@@ -1,0 +1,6 @@
+name: ServerOperations
+version: '${version}'
+main: io.github.ridhgrg.platform.paper.OperationsPlugin
+api-version: '26.2'
+description: Local server operations integration foundation
+load: POSTWORLD

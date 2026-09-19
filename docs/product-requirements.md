@@ -10,20 +10,20 @@ Support a 2018 Intel MacBook Pro for development, a Linux EliteDesk for initial 
 
 ## Functional requirements
 
-| Area | Required behavior | Delivery |
-| --- | --- | --- |
-| Identity | Register, verify email, login/logout, reset password, rotating revocable sessions, throttling | Phase 2 |
-| Organizations | Multiple memberships; OWNER, ADMIN, OPERATOR, VIEWER; invitations and server-side tenant isolation | Phase 2 |
-| Onboarding | Server CRUD, expiring single-use enrollment, device identity, rotation/revocation | Phase 3 |
-| Agent | Outbound TLS, reconnect/jitter, heartbeat, host CPU/RAM/disk/uptime, simulator | Phase 4 |
-| Dashboard | Accurate health, last seen, Minecraft/agent/plugin status, responsive accessible UI | Phase 5 |
-| Paper | Player counts, UUID/name, join/quit, TPS/MSPT when available, worlds and version | Phase 6 |
-| Control | Docker/systemd start/stop/restart, typed allowlist, timeouts, durable command history | Phase 7 |
-| Logs/events | Bounded sanitized operational events and opt-in filtered log tail | Phases 5–7 |
-| Backups | Local destination, consistency policy, capacity check, overlap protection, size/status and retention | Phase 8 |
-| Alerts | Offline/resource/TPS/MSPT/backup rules, duration, cooldown, dedup and recovery; Discord first | Phase 8 |
-| Billing | Stripe Checkout/Portal, verified idempotent webhooks, server-side entitlements | Phase 9 |
-| Hardening | Load/security testing, restore exercise, release artifacts and operating documentation | Phase 10 |
+| Area          | Required behavior                                                                                    | Delivery   |
+| ------------- | ---------------------------------------------------------------------------------------------------- | ---------- |
+| Identity      | Register, verify email, login/logout, reset password, rotating revocable sessions, throttling        | Phase 2    |
+| Organizations | Multiple memberships; OWNER, ADMIN, OPERATOR, VIEWER; invitations and server-side tenant isolation   | Phase 2    |
+| Onboarding    | Server CRUD, expiring single-use enrollment, device identity, rotation/revocation                    | Phase 3    |
+| Agent         | Outbound TLS, reconnect/jitter, heartbeat, host CPU/RAM/disk/uptime, simulator                       | Phase 4    |
+| Dashboard     | Accurate health, last seen, Minecraft/agent/plugin status, responsive accessible UI                  | Phase 5    |
+| Paper         | Player counts, UUID/name, join/quit, TPS/MSPT when available, worlds and version                     | Phase 6    |
+| Control       | Docker/systemd start/stop/restart, typed allowlist, timeouts, durable command history                | Phase 7    |
+| Logs/events   | Bounded sanitized operational events and opt-in filtered log tail                                    | Phases 5–7 |
+| Backups       | Local destination, consistency policy, capacity check, overlap protection, size/status and retention | Phase 8    |
+| Alerts        | Offline/resource/TPS/MSPT/backup rules, duration, cooldown, dedup and recovery; Discord first        | Phase 8    |
+| Billing       | Stripe Checkout/Portal, verified idempotent webhooks, server-side entitlements                       | Phase 9    |
+| Hardening     | Load/security testing, restore exercise, release artifacts and operating documentation               | Phase 10   |
 
 Manual process support initially provides status/logs for explicitly configured processes; lifecycle capabilities require safe local ownership. See [review decisions](review-decisions.md). Staff permissions and plan entitlements are separate checks. Plan labels FREE/PRO/GROWTH/NETWORK are product configuration, never authorization branches.
 

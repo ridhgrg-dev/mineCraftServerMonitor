@@ -1,6 +1,6 @@
 # 0005: Paper plugin as a local telemetry integration
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 

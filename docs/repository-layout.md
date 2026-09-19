@@ -1,6 +1,6 @@
 # Planned repository layout
 
-Only documentation exists today. The following is a plan, not an inventory or runnable scaffold.
+This is the full planned layout. Phase 1 now supplies web/API foundations, native harnesses, contracts, Compose, CI and scripts. Business-domain directories and simulator remain deferred; use `git ls-files` for the implemented inventory.
 
 ```text
 /
@@ -34,7 +34,7 @@ Only documentation exists today. The following is a plan, not an inventory or ru
       transport/
       journal/
       telemetry/
-      adapters/                # Docker, systemd, configured process, simulator
+      adapters/                # Docker/systemd boundaries; implementation deferred
       backups/
       plugin/
     go.mod
@@ -83,3 +83,7 @@ Only documentation exists today. The following is a plan, not an inventory or ru
 ```
 
 Do not share Python/Go business logic through a TypeScript package. Share protocol contracts and conformance fixtures across languages. Generated API client changes must be reproducible and reviewed. Each runtime retains native build tooling; top-level tasks orchestrate it without adding a monorepo build framework initially.
+
+## Approved Phase 1 review (2026-09-18)
+
+Redis is optional for base readiness. PostgreSQL is the sole durable authority. Phase 1 establishes database roles and transaction-local tenant context without tenant tables; RLS policies follow in Phase 2. Docker and systemd are the initial controllable runtime targets; generic/manual process control is deferred. Freeze canonical Ed25519 challenge encoding and byte fixtures before Phase 3. Architecture review is complete; implement foundation only, then stop for review.

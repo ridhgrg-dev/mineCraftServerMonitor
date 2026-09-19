@@ -1,6 +1,6 @@
 # 0007: Redis for disposable coordination
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-18
 
@@ -25,3 +25,7 @@ Loss of Redis may degrade availability but cannot erase accepted work. Sensitive
 Restart/flush Redis in integration tests: accepted commands survive, routing recovers and authentication throttling cannot be bypassed.
 
 Related: [architecture](../architecture.md), [security](../security.md), [versions](../dependencies.md).
+
+## Review clarification
+
+Redis is optional for basic startup and ordinary development. PostgreSQL remains the sole durable authority; only features that require Redis may gate on its availability.

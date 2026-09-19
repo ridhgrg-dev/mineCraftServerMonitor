@@ -1,37 +1,104 @@
-# Dependency research and selection
+# Locked dependencies and compatibility
 
-Research date: 2026-09-18. These are **proposed version lines**, not installed dependencies or a tested compatibility matrix. Official pages were consulted during design. Exact package patches, image digests, transitive licenses and build compatibility must be resolved in Phase 1 before implementation uses them. Do not put floating `latest` tags in committed deployment files.
+Resolved against official documentation and package registries on 2026-09-18. Exact direct dependencies are in manifests; full transitive versions/hashes are in `pnpm-lock.yaml`, `apps/api/uv.lock`, Gradle lockfiles and Gradle verification metadata. The Go harness uses only the standard library and needs no `go.sum`.
 
-| Component | Proposed baseline / observed evidence | Official reference |
-| --- | --- | --- |
-| Node.js | 24 LTS; prefer LTS over 26 Current | [Release schedule](https://nodejs.org/en/about/previous-releases) |
-| Next.js | Supported stable 16.x, exact security patch to resolve | [Installation requirements](https://nextjs.org/docs/app/getting-started/installation) |
-| React | 19.x matching Next peer requirements; version page reports 19.3 | [Versions](https://react.dev/versions) |
-| TypeScript | Supported stable compiler compatible with Next/ESLint; 6.0 documentation reviewed, final line unresolved | [Release notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html) |
-| Tailwind | 4.x; use Next/PostCSS integration in implementation | [Official installation documentation](https://tailwindcss.com/docs/installation/using-vite) |
-| Python | 3.14 line; official downloads surfaced 3.14.6, recheck patch on lock | [Downloads](https://www.python.org/getit/) |
-| FastAPI | Current stable release compatible with Python/Pydantic; exact version unresolved | [Release notes](https://fastapi.tiangolo.com/release-notes/) |
-| Pydantic | 2.x; align with selected FastAPI | [Documentation](https://docs.pydantic.dev/latest/) |
-| SQLAlchemy | 2.0 line; official page reports 2.0.54 | [Documentation](https://docs.sqlalchemy.org/en/20/) |
-| Alembic | 1.x; official documentation reports 1.20.0 | [Documentation](https://alembic.sqlalchemy.org/en/latest/) |
-| PostgreSQL | 18, latest supported minor at lock; versioning page reports 18.6 | [Supported versions](https://www.postgresql.org/support/versioning/) |
-| Redis | Supported 8.x OSS line; exact release and license election unresolved | [Official security support](https://github.com/redis/redis/security), [release index](https://redis.io/docs/latest/operate/oss_and_stack/stack-with-enterprise/release-notes/) |
-| Go | 1.27.1 observed on official downloads; verify supported platforms | [Downloads](https://go.dev/dl/) |
-| Paper / Java | Current documented Paper 26.x and Java 25; pin exact published API/build later | [Requirements](https://docs.papermc.io/paper/getting-started/), [plugin setup](https://docs.papermc.io/paper/dev/project-setup/) |
-| Gradle | Stable 9.x matching Java 25; Java 25 execution requires at least 9.1 | [Compatibility matrix](https://docs.gradle.org/current/userguide/compatibility.html) |
-| Caddy | Stable 2.x; exact version/digest unresolved | [Documentation](https://caddyserver.com/docs/) |
-| Docker / Compose | Supported Engine/Desktop and Compose plugin; exact minimum unresolved | [Compose documentation](https://docs.docker.com/compose/) |
+## Toolchains and containers
 
-The pages above can update independently and search snapshots may lag. Observed patch numbers are research evidence, not a release lock or a guarantee of currentness. Verify registry releases, security advisories, platform support and published image digests when writing manifests. Official Next documentation requires Node >=20.9 and notes that Next 16 builds do not run lint automatically; use an explicit lint CI job. Go downloads list Darwin amd64 and Linux amd64/arm64; confirm the actual Mac's OS meets the selected toolchain requirements.
+| Component                     | Selected version                       | Reason/evidence                                                                                              |
+| ----------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Node                          | 24.21.0                                | Installed LTS runtime; Next build and tests validated                                                        |
+| pnpm                          | 12.4.2                                 | Exact workspace package-manager version and strict peer checks                                               |
+| Python                        | 3.14.7 container/CI; 3.14.4 native Mac | Same supported minor; native wheel install and wheel/sdist build passed                                      |
+| uv                            | 0.12.16                                | Exact lock/sync tool and API image build tool                                                                |
+| Go                            | 1.27.1                                 | Official checksum-verified toolchain; Darwin amd64/Linux amd64/arm64 builds                                  |
+| Java                          | Temurin 25.0.4.1+1                     | Official checksum-verified Intel Mac JDK; Paper 26.2 requirement; CI uses Adoptium SemVer `25.0.4+101.0.LTS` |
+| Gradle                        | 9.7.1                                  | Wrapper distribution and wrapper JAR SHA-256 verified                                                        |
+| Paper API                     | 26.2.build.124-stable                  | Exact published stable coordinate; no dynamic/snapshot dependency                                            |
+| JUnit                         | 6.0.3                                  | Locked test dependency, runs on Java 25                                                                      |
+| Spotless / google-java-format | 8.6.0 / 1.35.0                         | Pinned Java formatting; compiler uses all lint warnings as errors                                            |
+| PostgreSQL                    | 18.6-trixie                            | Supported relational baseline and role/RLS preparation                                                       |
+| Redis server                  | 8.10.1-alpine                          | Newest published official container observed; 8.10.2 source release has no matching official image yet       |
+| Caddy                         | 2.11.4-alpine                          | Stable official release with production TLS edge configuration                                               |
+| Compose                       | 5.5.1 tested                           | Standalone CLI and Colima integration; Docker Engine 29.5.2 under Colima                                     |
+| Buildx                        | 0.37.1 tested                          | Locally downloaded checksum-verified plugin; required for modern Dockerfiles                                 |
 
-## Dependency admission and licenses
+Base Python/Node/PostgreSQL/Redis/Caddy images pin immutable multi-platform index digests recorded in [image manifests](../infrastructure/docker/image-manifests.json). Docker Hub manifests were checked for both Linux amd64 and arm64. An index existing is not proof of a successful application image build; consult [results](phase-1-results.md).
 
-Record name/version, purpose, source, maintenance evidence, license/SPDX identifier and alternatives for each significant direct dependency when introducing it. Prefer standard libraries for protocol framing, fixed process execution and cryptographic primitives. Use maintained libraries for password hashing, database drivers and framework integration rather than bespoke implementations.
+## Direct package versions
 
-Expected dependencies include a PostgreSQL driver, Redis client, Argon2id library, Go WebSocket client, host-metrics collector and local journal storage. These are proposals, not selected packages. Compare platform support and maintenance before choosing them. Use native testing: pytest, frontend component tests, Playwright, Go tests and JUnit; pin tool versions and browser images. pnpm and uv are proposed lockfile tooling, subject to compatibility verification.
+| Package                   | Exact version   | Scope           |
+| ------------------------- | --------------- | --------------- |
+| prettier                  | 3.9.7           | devDependencies |
+| openapi-typescript        | 7.13.0          | devDependencies |
+| @playwright/test          | 1.63.0          | devDependencies |
+| next                      | 16.3.5          | dependencies    |
+| react                     | 19.3.0          | dependencies    |
+| react-dom                 | 19.3.0          | dependencies    |
+| typescript                | 6.0.3           | devDependencies |
+| @types/node               | 24.13.5         | devDependencies |
+| @types/react              | 19.3.0          | devDependencies |
+| @types/react-dom          | 19.3.0          | devDependencies |
+| tailwindcss               | 4.3.3           | devDependencies |
+| @tailwindcss/postcss      | 4.3.3           | devDependencies |
+| eslint                    | 9.39.5          | devDependencies |
+| eslint-config-next        | 16.3.5          | devDependencies |
+| vitest                    | 5.0.1           | devDependencies |
+| @testing-library/react    | 16.3.3          | devDependencies |
+| @testing-library/jest-dom | 7.0.1           | devDependencies |
+| jsdom                     | 30.1.0          | devDependencies |
+| openapi-fetch             | 0.17.0          | dependencies    |
+| fastapi                   | 0.141.1         | Python          |
+| uvicorn                   | 0.53.0          | Python          |
+| pydantic-settings         | 2.15.0          | Python          |
+| sqlalchemy[asyncio]       | 2.0.54          | Python          |
+| alembic                   | 1.20.0          | Python          |
+| psycopg[binary]           | 3.3.6           | Python          |
+| redis                     | 8.1.0           | Python          |
+| pytest                    | 9.1.1           | Python          |
+| pytest-asyncio            | 1.4.0           | Python          |
+| httpx                     | 0.28.1          | Python          |
+| ruff                      | 0.16.8          | Python          |
+| mypy                      | 2.3.1           | Python          |
+| jsonschema                | 4.26.0          | Python          |
+| types-jsonschema          | 4.26.0.20260518 | Python          |
+| pyyaml                    | 6.0.3           | Python          |
+| types-pyyaml              | 6.0.12.20260906 | Python          |
+| pip-audit                 | 2.10.1          | Python          |
 
-Redis distribution/license selection and Paper API/distribution obligations need explicit recording before shipping. This document does not assert legal suitability of unreviewed dependency versions. Do not introduce experimental dependencies, a full queue framework or an additional UI framework without a concrete need.
+## Compatibility decisions
 
-## Phase 1 compatibility gate
+Next 16.3.5 accepts React 19.3.0. ESLint 10 and TypeScript 7 were rejected during initial resolution because current Next lint plugins require ESLint 9 and TypeScript below 6.1. Selected ESLint 9.39.5 and TypeScript 6.0.3 pass strict peer resolution and application checks. ESLint 9 emits a deprecation notice; upgrade only when Next plugin peers support the replacement. `next build --webpack` avoids the observed Turbopack worker port-binding restriction on this Mac; both builders are supported by Next.
 
-Resolve and lock all direct/transitive dependencies, build each component, check native wheels for Python 3.14 on Linux and Intel macOS, confirm Next/React/TypeScript peers, run plugin compile/tests with pinned Java/Paper/Gradle, build architecture-specific images and inspect scans. If a stable version fails compatibility, select a supported earlier line and document evidence. These checks are intentionally unrun in this documentation-only phase.
+Current Playwright 1.63.0 bundled Chromium no longer supports this Mac's macOS 13.7.8. Local smoke tests use the installed Chrome channel; Linux CI installs Playwright's pinned Chromium. This keeps current tooling without silently downgrading the browser dependency. Docker development on older macOS may require Colima or a supported Linux host.
+
+Psycopg binary, Pydantic core, SQLAlchemy and greenlet locked distributions contain CPython 3.14-compatible x86_64/aarch64 Linux wheels. Native Intel macOS dependency installation succeeded. Container builds independently exercise the Linux interpreter; ARM Go cross-compilation is separate from ARM container runtime testing.
+
+## Significant dependency purpose and license inventory
+
+| Dependency family                        | Purpose                                    | Upstream license family                                                     |
+| ---------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------- |
+| Next, React, Tailwind, FastAPI, Pydantic | UI, HTTP routing, validation/settings      | MIT                                                                         |
+| SQLAlchemy, Alembic                      | Relational transactions and migrations     | MIT                                                                         |
+| Uvicorn                                  | ASGI process server                        | BSD-3-Clause                                                                |
+| Psycopg                                  | PostgreSQL driver                          | LGPL-3.0-or-later; preserve bundled-library notices                         |
+| redis-py                                 | Optional cache client                      | MIT                                                                         |
+| Redis server                             | Ephemeral coordination, separate service   | Redis 8 offers AGPLv3/SSPLv1/RSALv2; this foundation uses the AGPLv3 option |
+| PostgreSQL                               | Sole durable database                      | PostgreSQL License                                                          |
+| Go                                       | Agent compiler/standard library            | BSD-3-Clause                                                                |
+| Paper API                                | Compile-only public server API             | GPL-3.0; API is not bundled in the plugin JAR                               |
+| Temurin/OpenJDK                          | Java compiler/runtime                      | GPL-2.0 with Classpath Exception                                            |
+| Gradle, Caddy, TypeScript, Playwright    | Build, edge proxy, types and browser tests | Apache-2.0                                                                  |
+| pytest, Ruff, mypy, Vitest               | Tests/lint/types                           | MIT                                                                         |
+
+Retain exact upstream license notices when distributing dependencies/images; transitive licenses still apply. This inventory is not a claim that a full commercial distribution audit has been completed. Redis is unmodified and isolated from the application; license obligations must remain in release packaging. No extra queue framework, crypto implementation, host-metrics library or generic process executor is introduced in Phase 1.
+
+## Official sources
+
+- [Next installation and requirements](https://nextjs.org/docs/app/getting-started/installation), [React releases](https://react.dev/versions), [Node support schedule](https://nodejs.org/en/about/previous-releases)
+- [TypeScript 6 release notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html), [pnpm build-script controls](https://pnpm.io/settings)
+- [uv installation](https://docs.astral.sh/uv/getting-started/installation/), [FastAPI releases](https://fastapi.tiangolo.com/release-notes/), [SQLAlchemy](https://docs.sqlalchemy.org/en/20/), [Alembic](https://alembic.sqlalchemy.org/en/latest/)
+- [Go distributions](https://go.dev/dl/), [Paper project setup](https://docs.papermc.io/paper/dev/project-setup/), [Gradle Java compatibility](https://docs.gradle.org/current/userguide/compatibility.html)
+- [PostgreSQL support](https://www.postgresql.org/support/versioning/), [PostgreSQL container persistence](https://docs.docker.com/guides/postgresql/immediate-setup-and-data-persistence/)
+- [Redis 8.10.1 license source](https://github.com/redis/redis/blob/8.10.1/LICENSE.txt), [Caddy releases](https://github.com/caddyserver/caddy/releases)
+
+Dependency updates must regenerate locks, pass peer checks, conformance/tests/builds and scans, and document any platform/support change. No floating `latest` image tag is used.

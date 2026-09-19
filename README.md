@@ -1,30 +1,62 @@
 # MineOps
 
-Architecture proposal for a Minecraft server management platform. MineOps is a temporary product name; implementation namespaces should use neutral component names.
+A foundation for secure game-server operations: a FastAPI control plane, Next.js dashboard, Go host agent and Paper plugin. MineOps remains a temporary product name.
 
-**Status: Phase 0 design complete for review. No application has been implemented.**
-
-Start with [review decisions](docs/review-decisions.md), then the [Phase 1 plan](docs/phase-1-plan.md). The source specification is [Initial Prompt](Prompts/Initial%20Prompt.txt).
-
-| Artifact | Purpose |
-| --- | --- |
-| [Requirements](docs/product-requirements.md) | Scope, phases, measurable acceptance |
-| [Architecture](docs/architecture.md) | Components, boundaries, deployment and flows |
-| [Security](docs/security.md) | Threats, identity, permissions and controls |
-| [Decision records](docs/adr/README.md) | Nine proposed architecture decisions |
-| [Database](docs/database.md) | Logical schema and invariants |
-| [Agent protocol](docs/agent-protocol.md) | Enrollment, transport and command semantics |
-| [API conventions](docs/api-conventions.md) | HTTP contracts and errors |
-| [Dependencies](docs/dependencies.md) | Official references and version selection |
-| [Repository layout](docs/repository-layout.md) | Planned directory tree |
+**Phase 1 implementation is available for review. Native and Compose acceptance checks passed; the container vulnerability gate remains open; see [results](docs/phase-1-results.md).** No users, organizations, agent authentication, telemetry, server control or billing are implemented.
 
 ```mermaid
 flowchart LR
-  Browser -->|HTTPS| Control[Control plane]
-  Agent[Host agent] -->|Outbound WSS| Control
-  Plugin[Paper plugin] -->|Authenticated local telemetry| Agent
-  Agent -->|Local allowlisted operations| Runtime[Game runtime]
-  Control --> DB[(PostgreSQL)]
+  Browser --> Web[Next.js web]
+  Web --> API[FastAPI health API]
+  API --> PG[(PostgreSQL)]
+  API -. optional .-> Redis[(Redis)]
+  Worker[Worker lifecycle] --> PG
+  Agent[Go build and lifecycle harness]
+  Paper[Paper plugin lifecycle harness]
 ```
 
-Development will target Intel macOS and Linux using Docker Compose; normal dashboard development will use a simulator without Minecraft. Quick start, test commands and deployment procedures will be added and verified in Phase 1. There is currently nothing to run. Phase 1 must wait for architecture review.
+## Quick start
+
+Install Docker with Compose, Git and Python 3.14. From a clean checkout:
+
+```sh
+git clone https://github.com/ridhgrg-dev/mineCraftServerMonitor.git
+cd mineCraftServerMonitor
+infrastructure/scripts/dev-up.sh
+```
+
+The script generates private local `.env` credentials, starts PostgreSQL/Redis, builds images, applies the explicit migration and starts services. Open [the workspace](http://localhost:3000), [API liveness](http://localhost:8000/health/live) or [development API docs](http://localhost:8000/docs). No Minecraft server is required.
+
+## Development and checks
+
+Native toolchain versions: Node 24.21.0, pnpm 12.4.2, Python 3.14 (production 3.14.7), uv 0.12.16, Go 1.27.1, Java 25.0.4.1+1. The Gradle wrapper pins 9.7.1.
+
+```sh
+uv sync --project apps/api --frozen
+pnpm install --frozen-lockfile
+infrastructure/scripts/check-python.sh
+pnpm format:check
+pnpm web:check
+pnpm web:test
+pnpm web:build
+pnpm api:drift
+infrastructure/scripts/check-go.sh
+integrations/minecraft-paper/gradlew -p integrations/minecraft-paper spotlessCheck test build --no-daemon
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+Real integration tests require PostgreSQL/Redis; run `infrastructure/scripts/verify-compose.sh` in an isolated checkout with free local ports. It creates its own credentials and disposable Compose project, verifies migration/restore and removes only that test project's volumes.
+
+## Documentation
+
+- [Phase 1 results and remaining gates](docs/phase-1-results.md)
+- [Development and environment variables](docs/development.md)
+- [Production deployment](docs/deployment.md)
+- [Backup and recovery](docs/backups.md)
+- [Architecture](docs/architecture.md), [accepted ADRs](docs/adr/README.md), [security](docs/security.md)
+- [Database foundation and future schema](docs/database.md)
+- [Exact dependencies and compatibility decisions](docs/dependencies.md)
+- [Product requirements](docs/product-requirements.md), [agent protocol proposal](docs/agent-protocol.md)
+
+Production uses the standalone `compose.production.yaml`: Caddy is the only public service; PostgreSQL and Redis remain private. Runtime and migration database identities are separate. Redis is optional for base readiness. Phase 2 is not started.

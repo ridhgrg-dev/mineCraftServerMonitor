@@ -1,6 +1,6 @@
 # Architecture
 
-Status: proposed. Related: [security](security.md), [schema](database.md), [protocol](agent-protocol.md), [ADRs](adr/README.md).
+Status: accepted architecture; Phase 1 implementation approved. Related: [security](security.md), [schema](database.md), [protocol](agent-protocol.md), [ADRs](adr/README.md).
 
 ## Components and trust boundaries
 
@@ -27,7 +27,7 @@ flowchart TB
   subgraph Customer[Customer host boundary]
     Agent[Go host agent]
     Plugin[Paper plugin]
-    Runtime[Docker / systemd / configured process]
+    Runtime[Docker / systemd]
     Backup[Owner-selected backup storage]
     Plugin -->|Loopback authenticated telemetry| Agent
     Agent -->|Fixed local adapters| Runtime
@@ -69,7 +69,7 @@ sequenceDiagram
   A-->>U: Actual persisted state
 ```
 
-Database outbox rows are transactionally committed with business changes. Workers claim bounded batches with leases and `FOR UPDATE SKIP LOCKED`; external deliveries are retryable with idempotency/deduplication, backoff and dead-letter visibility. Redis notifications may wake a socket owner, but periodic durable polling recovers lost notifications. Start with one API gateway instance; design connection generations and durable routing to permit more instances later. A queue product is unnecessary initially.
+Database outbox rows are transactionally committed with business changes. Workers claim bounded batches with leases and `FOR UPDATE SKIP LOCKED`; external deliveries are retryable with idempotency/deduplication, backoff and dead-letter visibility. Redis notifications may wake a socket owner, but periodic durable polling recovers lost notifications. Start with one API gateway instance; design connection generations and durable routing to permit more instances later. A queue product is unnecessary initially. Phase 1 includes worker lifecycle only; durable job tables and execution arrive with real features.
 
 Agents batch host samples every 30 seconds and game health every 15 seconds; join/quit is event-driven with bounded spooling. API derives tenant identity from credentials, validates types/size/rate and inserts batches. The browser initially uses bounded polling; SSE is an optional later optimization. It never shares the agent socket.
 
@@ -104,3 +104,7 @@ Aggregate by organization/resource/time bucket idempotently; retain sample count
 Database outage rejects new operations and prevents success acknowledgements for uncommitted ingestion. Redis outage disables unsafe rate-limited writes with a retryable error while safe reads may continue. Worker failure leaves durable jobs recoverable. Agent disconnect changes reachability, not inferred runtime outcome. Single-host failure interrupts the service; this is not high availability.
 
 Proposed recovery objectives: control-plane RPO 24 hours and RTO 4 hours, subject to restore rehearsal. Encrypted off-host PostgreSQL backups, secret-key recovery, volume inventory, recovery ordering and restore tests are required before launch. Minecraft world recovery has independent per-server policy and is initially owner-operated.
+
+## Approved Phase 1 review (2026-09-18)
+
+Redis is optional for base readiness. PostgreSQL is the sole durable authority. Phase 1 establishes database roles and transaction-local tenant context without tenant tables; RLS policies follow in Phase 2. Docker and systemd are the initial controllable runtime targets; generic/manual process control is deferred. Freeze canonical Ed25519 challenge encoding and byte fixtures before Phase 3. Architecture review is complete; implement foundation only, then stop for review.

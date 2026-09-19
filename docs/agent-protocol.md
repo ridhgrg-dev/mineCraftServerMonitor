@@ -32,23 +32,23 @@ Support current and previous minor protocol versions for at least one agent rele
     "server_id": "2c1c0113-f7cb-42d9-ad1d-1d5c049798a0",
     "binding_generation": 1,
     "operation": "server.restart",
-    "parameters": {"grace_seconds": 30},
+    "parameters": { "grace_seconds": 30 },
     "deadline_at": "2026-09-18T16:02:00Z"
   }
 }
 ```
 
-| Message | Direction | Purpose |
-| --- | --- | --- |
-| `hello`, `welcome` | Agent → API, API → agent | Version, identity-bound capabilities, connection generation |
-| `heartbeat`, `heartbeat.ack` | Both | Liveness, clock estimate, runtime summary |
-| `telemetry.batch`, `events.batch` | Agent → API | Typed samples or player/operational events with boot ID and sequence |
-| `ingest.ack` | API → agent | Persisted contiguous cursor; never acknowledge before commit |
-| `command.request` | API → agent | Allowlisted action and bounded typed parameters |
-| `command.ack`, `command.started`, `command.result` | Agent → API | Journaled receipt, start, observed result |
-| `command.result.ack` | API → agent | Durable result storage permits journal compaction |
-| `log.chunk` | Agent → API | Approved filtered bounded stream with cursor |
-| `error`, `draining` | Both | Structured safe failure or graceful disconnect |
+| Message                                            | Direction                | Purpose                                                              |
+| -------------------------------------------------- | ------------------------ | -------------------------------------------------------------------- |
+| `hello`, `welcome`                                 | Agent → API, API → agent | Version, identity-bound capabilities, connection generation          |
+| `heartbeat`, `heartbeat.ack`                       | Both                     | Liveness, clock estimate, runtime summary                            |
+| `telemetry.batch`, `events.batch`                  | Agent → API              | Typed samples or player/operational events with boot ID and sequence |
+| `ingest.ack`                                       | API → agent              | Persisted contiguous cursor; never acknowledge before commit         |
+| `command.request`                                  | API → agent              | Allowlisted action and bounded typed parameters                      |
+| `command.ack`, `command.started`, `command.result` | Agent → API              | Journaled receipt, start, observed result                            |
+| `command.result.ack`                               | API → agent              | Durable result storage permits journal compaction                    |
+| `log.chunk`                                        | Agent → API              | Approved filtered bounded stream with cursor                         |
+| `error`, `draining`                                | Both                     | Structured safe failure or graceful disconnect                       |
 
 Tenant identity comes from the authenticated agent, never message claims. Validate each server against its active binding. Per-message type schemas reject invalid/extra command parameters. Telemetry includes observation and receipt timestamps; server receipt time governs liveness. Reject nonfinite metrics, negative counts, timestamps outside replay policy and invalid units. Missing TPS/MSPT is null plus capability reason.
 
@@ -56,14 +56,14 @@ Default maximum frame 256 KiB, batch 100 records, log line 8 KiB and one log str
 
 ## Operation allowlist
 
-| Operation | Parameters | Validation and success criterion |
-| --- | --- | --- |
-| `server.status` | empty object | Local observation returned; no side effect |
-| `server.start` | empty object | Bound runtime observed running/ready according to adapter |
-| `server.stop` | grace_seconds 1–120 | Bound runtime observed stopped; force-kill requires local opt-in |
-| `server.restart` | grace_seconds 1–120 | Old runtime stopped and new instance observed running/ready |
-| `server.backup` | backup_profile_id UUID | Profile maps locally; finalized artifact and checksum exist |
-| `server.logs.tail` | max_lines 1–500, duration_seconds 1–60 | Privacy-approved local source only; bounded read |
+| Operation          | Parameters                             | Validation and success criterion                                 |
+| ------------------ | -------------------------------------- | ---------------------------------------------------------------- |
+| `server.status`    | empty object                           | Local observation returned; no side effect                       |
+| `server.start`     | empty object                           | Bound runtime observed running/ready according to adapter        |
+| `server.stop`      | grace_seconds 1–120                    | Bound runtime observed stopped; force-kill requires local opt-in |
+| `server.restart`   | grace_seconds 1–120                    | Old runtime stopped and new instance observed running/ready      |
+| `server.backup`    | backup_profile_id UUID                 | Profile maps locally; finalized artifact and checksum exist      |
+| `server.logs.tail` | max_lines 1–500, duration_seconds 1–60 | Privacy-approved local source only; bounded read                 |
 
 Default overall lifecycle timeout 120 seconds, backup timeout 30 minutes, logs 60 seconds. Effective timeout is the smaller of policy and command deadline. Serialize conflicting lifecycle/backup operations per server. Each adapter advertises actual capabilities; unsupported operations return `operation.not_supported`, never pretend success.
 

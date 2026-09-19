@@ -1,0 +1,24 @@
+{
+  "name": "server-operations",
+  "private": true,
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "web:dev": "pnpm --filter @platform/web dev",
+    "web:build": "pnpm --filter @platform/web build",
+    "web:check": "pnpm --filter @platform/web check",
+    "web:test": "pnpm --filter @platform/web test",
+    "api:generate": "uv run --project apps/api --frozen python infrastructure/scripts/export-openapi.py && openapi-typescript packages/api-client/openapi.json -o packages/api-client/src/schema.d.ts",
+    "api:drift": "node infrastructure/scripts/check-client-drift.mjs",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "prettier": "3.9.7",
+    "openapi-typescript": "7.13.0",
+    "@playwright/test": "1.63.0"
+  }
+}
