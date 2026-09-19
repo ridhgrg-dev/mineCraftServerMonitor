@@ -1,6 +1,6 @@
 plugins {
     java
-    id("com.diffplug.spotless") version "8.6.0"
+    id("com.diffplug.spotless") version "8.10.2"
 }
 group = "io.github.ridhgrg.platform"
 version = "0.1.0"
