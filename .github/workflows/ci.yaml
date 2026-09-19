@@ -81,14 +81,14 @@ jobs:
       - run: uv sync --project apps/api --frozen
       - run: infrastructure/scripts/verify-compose.sh
       - run: infrastructure/scripts/verify-production.sh
-      - uses: anchore/scan-action@v6
+      - uses: anchore/scan-action@v7
         with:
           image: server-operations-api:foundation-test
           fail-build: true
           severity-cutoff: high
           output-format: json
           output-file: api-grype.json
-      - uses: anchore/scan-action@v6
+      - uses: anchore/scan-action@v7
         with:
           image: server-operations-web:foundation-test
           fail-build: true
