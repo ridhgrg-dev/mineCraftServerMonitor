@@ -68,7 +68,7 @@ jobs:
       - name: Summarize Paper failure
         if: failure()
         run: |
-          failure=$(awk '/\* What went wrong:/{found=1; next} found && NF {print; exit}' /tmp/paper-gradle.log)
+          failure=$(awk '/\* What went wrong:/{found=1; next} found && NF {print; count++; if (count == 4) exit}' /tmp/paper-gradle.log | tr '\n' ' ')
           if [ -z "$failure" ]; then
             failure=$(grep -m1 -E 'Execution failed for task|[Ee]rror:' /tmp/paper-gradle.log || true)
           fi
