@@ -3,6 +3,10 @@ FROM python:3.14.7-slim-trixie@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48
 COPY --from=uv /uv /usr/local/bin/uv
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_LINK_MODE=copy
 WORKDIR /app
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get purge -y --auto-remove ncurses-bin ncurses-base libncursesw6 libtinfo6 \
+    && rm -rf /var/lib/apt/lists/*
 COPY apps/api/pyproject.toml apps/api/uv.lock ./
 COPY apps/api/src ./src
 COPY apps/api/alembic.ini ./
