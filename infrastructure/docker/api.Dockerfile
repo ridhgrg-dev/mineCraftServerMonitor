@@ -5,7 +5,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_LINK_MODE=copy
 WORKDIR /app
 RUN apt-get update \
     && apt-get upgrade -y \
-    && apt-get purge -y --auto-remove ncurses-bin ncurses-base libncursesw6 libtinfo6 \
     && rm -rf /var/lib/apt/lists/*
 COPY apps/api/pyproject.toml apps/api/uv.lock ./
 COPY apps/api/src ./src
