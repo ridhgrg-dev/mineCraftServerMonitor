@@ -61,7 +61,26 @@ jobs:
           distribution: temurin
           java-version: "25.0.4+101.0.LTS"
       - uses: gradle/actions/wrapper-validation@v4
-      - run: integrations/minecraft-paper/gradlew -p integrations/minecraft-paper spotlessCheck test build --no-daemon
+      - name: Run Paper validation
+        run: |
+          set -o pipefail
+          integrations/minecraft-paper/gradlew -p integrations/minecraft-paper clean spotlessCheck test build --no-daemon 2>&1 | tee /tmp/paper-gradle.log
+      - name: Summarize Paper failure
+        if: failure()
+        run: |
+          failure=$(grep -m1 -E 'Execution failed for task|What went wrong|FAILURE: Build failed|[Ee]rror:' /tmp/paper-gradle.log || true)
+          failure=${failure:-"Paper Gradle validation failed; see log tail below."}
+          echo "::error title=Paper Gradle validation failed::$failure"
+          {
+            echo '## Paper Gradle failure'
+            echo
+            echo "- Exit status: failed"
+            echo "- First failure: $failure"
+            echo
+            echo '```text'
+            tail -80 /tmp/paper-gradle.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
