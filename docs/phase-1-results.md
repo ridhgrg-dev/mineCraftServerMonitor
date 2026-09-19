@@ -1,8 +1,21 @@
 # Phase 1 verification results
 
-Date: 2026-09-18. Scope: repository foundation only. Architecture review is incorporated and all nine ADRs are Accepted. No Phase 2 business features were added.
+Date: 2026-09-19. Scope: repository foundation only. Architecture review is incorporated and all nine ADRs are Accepted. No Phase 2 business features were added.
 
-Status: implementation and functional acceptance checks passed. Final API and web images rebuilt successfully, but Phase 1 remains pending because a complete final vulnerability-scan result and a hosted CI review are not yet available.
+Status: **Phase 1 release accepted.** [Foundation CI run 35441774203](https://github.com/ridhgrg-dev/mineCraftServerMonitor/actions/runs/35441774203) passed at commit `518e87e9b99c90a8ea4f30dc33344d3b6a904b63`: Python, Go, Web, Paper, and Containers all passed. The blocking Anchore policy remains `fail-build: true` at `severity-cutoff: high`; it was not weakened.
+
+## Final release evidence
+
+| Item | Result |
+| --- | --- |
+| API runtime | `python:3.14.7-alpine3.24@sha256:016508ba505da24f7139765bc4bb669df4e88eb2f12eeadd571bf2f88d7533df` |
+| Web runtime | `node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1` |
+| API security remediation | Replaced Alpine `zlib 1.3.2-r0` with checksum-pinned zlib-ng 2.3.3 built in `ZLIB_COMPAT` mode; removed `apk` and the vulnerable package. The upstream zlib-ng test suite and API gzip/zlib factory smoke test passed. |
+| Web security remediation | Replaced Alpine `zlib 1.3.2-r0` with packaged zlib-ng 2.3.3, retained Node's required `libz.so.1` ABI with an explicit compatibility link, and removed `apk` and the vulnerable package. Node compression smoke passed. |
+| Final API image digest | `sha256:0123bde5b4282e2af33216c25f12c8f482e9622359d5cd4b48503075167a2cb1` |
+| Final Web image digest | `sha256:e314ff7a597b55813d63e01bb2c5d32442fe05fa50a72ed2b98a5238c80ecc1f` |
+| Anchore result | API: HIGH = 0, CRITICAL = 0. Web: HIGH = 0, CRITICAL = 0. |
+| Final functional validation | Hosted `verify-compose.sh` passed migrations, clean-database migration replay, integration checks, health checks, and backup/restore. Hosted `verify-production.sh` passed production Compose policy, Caddy/API/web smoke, Redis-optional restart, and worker shutdown. Web CI passed generated-client drift. Repository validation passed through all required CI jobs. |
 
 ## Selected versions
 
@@ -88,8 +101,7 @@ The patched production stack measured 247.47 MiB total after idle: API 85.13 MiB
 - Paper compiles against the public API and its artifact metadata is tested; a live Minecraft server has not been started.
 - ARM Go binaries build; base container indexes advertise ARM64. An ARM host runtime has not been exercised.
 - Native test dependencies emit two upstream deprecation warnings; Gradle reports deprecated features ahead of Gradle 10. These do not fail pinned-tool checks.
-- GitHub Actions is configured with mandatory checks and local service fixtures. A hosted CI run cannot be triggered for this uncommitted working tree without a commit/push, which is intentionally excluded from this review step; `gh` also reports invalid stored GitHub credentials. No hosted CI result is claimed.
-- An earlier local image scan found high/critical findings in superseded Bookworm-based API and web images. The runtime bases were upgraded to digest-pinned Trixie images and the web runtime removes npm/Corepack. The resulting API and web images rebuilt, but their final scan did not complete in this environment, so no claim is made that HIGH or CRITICAL vulnerabilities are absent. This is the Phase 1 acceptance blocker.
+- Hosted CI run 35441774203 is the release acceptance record. It completed all five required jobs and its strict Anchore scans found no unresolved HIGH or CRITICAL findings in the final API and web images.
 - Public ACME certificate issuance needs a real domain and has not been attempted against a user's deployment.
 
-Phase 2 recommendation: do not begin until the rebuilt final API/web images pass the configured high/critical vulnerability gate, a hosted CI run is reviewed, and this Phase 1 change set is reviewed.
+Phase 2 recommendation: begin only after Phase 1 review acceptance has been acknowledged.
