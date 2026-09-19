@@ -15,3 +15,6 @@ organizations, and memberships. Email identifiers are normalized to lowercase;
 memberships are unique per user/organization and roles are database-constrained
 to `owner`, `admin`, or `member`. The next checkpoint adds authentication,
 authorization, and RLS policies that consume this schema.
+
+Migration `0003_browser_sessions` adds hashed, revocable, expiring opaque
+browser-session records. Plain session credentials will never be stored.
